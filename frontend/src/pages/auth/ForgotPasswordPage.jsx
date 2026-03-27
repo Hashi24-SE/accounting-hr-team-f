@@ -1,15 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
-import { login, isAuthenticated } from '../../services/authService';
-import { Form, Input, Button, Typography } from 'antd';
-import {
-  UserOutlined,
-  LockOutlined,
-  EyeInvisibleOutlined,
-  EyeTwoTone,
-  ArrowRightOutlined,
-} from '@ant-design/icons';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { Form, Input, Button, Typography, message } from 'antd';
+import { UserOutlined, ArrowLeftOutlined, ArrowRightOutlined } from '@ant-design/icons';
+import { motion } from 'framer-motion';
+import api from '../../services/api';
 
 const { Text } = Typography;
 
@@ -50,7 +44,7 @@ const GridOverlay = () => (
 );
 
 /* ─── Main Component ────────────────────────────────────────────────────────── */
-const LoginPage = () => {
+const ForgotPasswordPage = () => {
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(null);
   const [tick, setTick] = useState(0);
@@ -69,15 +63,14 @@ const LoginPage = () => {
     hour12: true,
   });
 
-  if (isAuthenticated()) return <Navigate to="/employees" replace />;
-
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
-      await login(values.email, values.password);
-      navigate('/employees');
-    } catch {
-      /* global error handler */
+      await api.post('/api/auth/forgot-password', { email: values.email });
+      message.success('OTP sent to your email!');
+      navigate('/verify-otp', { state: { email: values.email } });
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Failed to send OTP. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -163,7 +156,6 @@ const LoginPage = () => {
 
           {/* ── Body ── */}
           <div style={{ padding: '36px 36px 32px' }}>
-            {/* Logo mark */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -172,48 +164,30 @@ const LoginPage = () => {
             >
               <div
                 style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 14,
-                  background: 'linear-gradient(135deg, #059669, #10b981)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 16px',
-                  boxShadow: '0 8px 24px rgba(16,185,129,0.3)',
-                  fontSize: 22,
-                }}
-              >
-                🌿
-              </div>
-              <div
-                style={{
                   color: '#f9fafb',
-                  fontSize: 20,
+                  fontSize: 24,
                   fontWeight: 700,
                   letterSpacing: '-0.02em',
                   lineHeight: 1.2,
+                  marginBottom: 8,
                 }}
               >
-                Green Solutions Tech
+                Forgot Password
               </div>
               <div
                 style={{
-                  color: '#6b7280',
-                  fontSize: 13,
-                  marginTop: 4,
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                  fontWeight: 500,
+                  color: '#9ca3af',
+                  fontSize: 14,
+                  lineHeight: 1.5,
                 }}
               >
-                HR Payroll System
+                Enter your work email. We'll send you a 6-digit OTP.
               </div>
             </motion.div>
 
             {/* Form */}
             <Form
-              name="login"
+              name="forgot-password"
               onFinish={handleSubmit}
               layout="vertical"
               requiredMark={false}
@@ -236,7 +210,7 @@ const LoginPage = () => {
                     { required: true, message: 'Email is required' },
                     { type: 'email', message: 'Enter a valid email' },
                   ]}
-                  style={{ marginBottom: 16 }}
+                  style={{ marginBottom: 24 }}
                 >
                   <Input
                     prefix={<UserOutlined style={{ color: focused === 'email' ? '#10b981' : '#4b5563' }} />}
@@ -255,80 +229,13 @@ const LoginPage = () => {
                 </Form.Item>
               </motion.div>
 
-              {/* Password */}
-              <motion.div
-                initial={{ opacity: 0, x: -12 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.28 }}
-              >
-                <Form.Item
-                  name="password"
-                  label={
-                    <span style={{ color: '#9ca3af', fontSize: 12, fontWeight: 500, letterSpacing: '0.04em' }}>
-                      PASSWORD
-                    </span>
-                  }
-                  rules={[{ required: true, message: 'Password is required' }]}
-                  style={{ marginBottom: 8 }}
-                >
-                  <Input.Password
-                    prefix={<LockOutlined style={{ color: focused === 'password' ? '#10b981' : '#4b5563' }} />}
-                    placeholder="••••••••"
-                    disabled={loading}
-                    size="large"
-                    onFocus={() => setFocused('password')}
-                    onBlur={() => setFocused(null)}
-                    iconRender={(visible) =>
-                      visible ? (
-                        <EyeTwoTone twoToneColor="#10b981" />
-                      ) : (
-                        <EyeInvisibleOutlined style={{ color: '#4b5563' }} />
-                      )
-                    }
-                    style={{
-                      ...inputWrap('password'),
-                      color: '#f9fafb',
-                      fontSize: 14,
-                    }}
-                  />
-                </Form.Item>
-              </motion.div>
-
-              {/* Forgot password */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.32 }}
-                style={{ textAlign: 'right', marginBottom: 24 }}
-              >
-                <button
-                  type="button"
-                  onClick={() => navigate('/forgot-password')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#10b981',
-                    fontSize: 13,
-                    cursor: 'pointer',
-                    padding: 0,
-                    fontFamily: 'inherit',
-                    opacity: 0.85,
-                    transition: 'opacity 0.2s',
-                  }}
-                  onMouseEnter={(e) => (e.target.style.opacity = 1)}
-                  onMouseLeave={(e) => (e.target.style.opacity = 0.85)}
-                >
-                  Forgot password?
-                </button>
-              </motion.div>
-
               {/* Submit */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.36 }}
+                transition={{ delay: 0.28 }}
               >
-                <Form.Item style={{ marginBottom: 0 }}>
+                <Form.Item style={{ marginBottom: 24 }}>
                   <Button
                     type="primary"
                     htmlType="submit"
@@ -355,9 +262,39 @@ const LoginPage = () => {
                       transition: 'all 0.25s ease',
                     }}
                   >
-                    {loading ? 'Signing in…' : 'Sign in'}
+                    {loading ? 'Sending OTP…' : 'Send OTP'}
                   </Button>
                 </Form.Item>
+              </motion.div>
+
+              {/* Back to Login */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.32 }}
+                style={{ textAlign: 'center' }}
+              >
+                <button
+                  type="button"
+                  onClick={() => navigate('/login')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#9ca3af',
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontFamily: 'inherit',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    transition: 'color 0.2s',
+                  }}
+                  onMouseEnter={(e) => (e.target.style.color = '#10b981')}
+                  onMouseLeave={(e) => (e.target.style.color = '#9ca3af')}
+                >
+                  <ArrowLeftOutlined style={{ fontSize: 12 }} /> Back to Login
+                </button>
               </motion.div>
             </Form>
           </div>
@@ -375,18 +312,6 @@ const LoginPage = () => {
             </Text>
           </div>
         </div>
-
-        {/* Sub-card hint */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          style={{ textAlign: 'center', marginTop: 20 }}
-        >
-          <Text style={{ color: '#374151', fontSize: 12 }}>
-            Admin-managed accounts only · Contact HR for access
-          </Text>
-        </motion.div>
       </motion.div>
 
       {/* pulse keyframe */}
@@ -407,4 +332,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default ForgotPasswordPage;

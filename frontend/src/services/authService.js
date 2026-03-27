@@ -1,6 +1,75 @@
-import api from './api';
+import axios from 'axios';
+
+let accessToken = null;
+
+export const getAccessToken = () => accessToken;
+
+export const setAccessToken = (token) => {
+  accessToken = token;
+};
+
+export const getRefreshToken = () => localStorage.getItem('refreshToken');
+
+export const setRefreshToken = (token) => {
+  localStorage.setItem('refreshToken', token);
+};
+
+export const clearTokens = () => {
+  accessToken = null;
+  localStorage.removeItem('refreshToken');
+};
+
+export const isAuthenticated = () => {
+  return !!accessToken || !!getRefreshToken();
+};
 
 export const login = async (email, password) => {
-  const response = await api.post('/auth/login', { email, password });
-  return response.data; // Note: api interceptor already unpacks `response.data` so this may just be `return response.data;` assuming api returns the axios object. Since we wrote `return response.data` in the interceptor, this will actually be `return await api.post...` but we'll adapt.
+  try {
+    const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
+      email,
+      password,
+    });
+    
+    if (response.data.success && response.data.data) {
+      const { accessToken: newAccessToken, refreshToken } = response.data.data;
+      setAccessToken(newAccessToken);
+      setRefreshToken(refreshToken);
+    }
+    
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || new Error('Login failed');
+  }
+};
+
+export const logout = async () => {
+  try {
+    const refreshToken = getRefreshToken();
+    if (accessToken && refreshToken) {
+      await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/api/auth/logout`,
+        { refreshToken },
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+    }
+  } catch (error) {
+    console.error('Logout API call failed', error);
+  } finally {
+    clearTokens();
+  }
+};
+
+export const fetchCurrentUser = async () => {
+  if (!accessToken) {
+    throw new Error('No access token available');
+  }
+  
+  try {
+    const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || new Error('Failed to fetch current user');
+  }
 };
