@@ -1,0 +1,15 @@
+# Backend build output
+/backend/build/
+
+# Gradle cache
+/backend/.gradle/
+
+# Any build folder anywhere
+build/**
+
+# Environment files
+.env
+node_modules/
+backend/node_modules/
+backend/node_modules
+*.log
