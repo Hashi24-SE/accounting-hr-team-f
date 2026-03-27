@@ -1,364 +1,328 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api, { extractApiErrorMessage } from '../../services/api';
+import api from '../../services/api';
+import { Form, Input, Select, DatePicker } from 'antd';
+import { User, Briefcase, CreditCard, CheckCircle, ChevronRight, ChevronLeft, ArrowLeft } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const initialForm = {
-  full_name: '',
-  nic: '',
-  dob: '',
-  tin: '',
-  designation: '',
-  department: '',
-  branch: '',
-  start_date: '',
-  contract_type: 'Permanent',
-  bank_name: '',
-  bank_branch: '',
-  account_number: '',
-  basic_salary: '',
-  hourly_ot_rate: '',
-};
-
-const requiredFields = [
-  'full_name',
-  'nic',
-  'dob',
-  'designation',
-  'department',
-  'branch',
-  'start_date',
-  'contract_type',
-  'bank_name',
-  'bank_branch',
-  'account_number',
-  'basic_salary',
-  'hourly_ot_rate',
+/* ── Step config ───────────────────────────────── */
+const STEPS = [
+  { key: 'personal',    label: 'Personal',    icon: User,        sub: 'Identity & basic info' },
+  { key: 'employment',  label: 'Employment',  icon: Briefcase,   sub: 'Role & department'     },
+  { key: 'salary',      label: 'Salary & Bank', icon: CreditCard, sub: 'Compensation details' },
 ];
 
-const sectionClassName = 'rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl shadow-black/10';
+const DEPARTMENTS = ['HR','IT','Finance','Engineering','Marketing','Operations','Sales','Administration'];
+const CONTRACT_TYPES = ['Permanent','Contract','Probation','Internship'];
 
-export default function EmployeeRegistrationForm() {
+/* ── Shared input style ────────────────────────── */
+const iStyle = {
+  background: 'rgba(255,255,255,0.03)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: 9, color: '#f9fafb', fontSize: 14,
+};
+const Label = ({ children, required }) => (
+  <span style={{ color: '#9ca3af', fontSize: 12, fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+    {children}{required && <span style={{ color: '#f87171', marginLeft: 3 }}>*</span>}
+  </span>
+);
+const FormGrid = ({ children }) => (
+  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 20px' }}>{children}</div>
+);
+const Full = ({ children }) => <div style={{ gridColumn: 'span 2' }}>{children}</div>;
+
+/* ── Step indicator ────────────────────────────── */
+const StepBar = ({ current }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 36 }}>
+    {STEPS.map((step, i) => {
+      const Icon = step.icon;
+      const done    = i < current;
+      const active  = i === current;
+      const pending = i > current;
+      return (
+        <div key={step.key} style={{ display: 'flex', alignItems: 'center', flex: i < STEPS.length - 1 ? 1 : 'none' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <motion.div
+              animate={{
+                background: done ? 'linear-gradient(135deg,#059669,#10b981)' : active ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)',
+                border: done ? '2px solid transparent' : active ? '2px solid #10b981' : '2px solid rgba(255,255,255,0.08)',
+                boxShadow: active ? '0 0 16px rgba(16,185,129,0.25)' : 'none',
+              }}
+              transition={{ duration: 0.3 }}
+              style={{
+                width: 44, height: 44, borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              {done
+                ? <CheckCircle size={18} style={{ color: '#fff' }} />
+                : <Icon size={18} style={{ color: active ? '#10b981' : '#374151' }} />
+              }
+            </motion.div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ color: active ? '#e5e7eb' : done ? '#10b981' : '#4b5563', fontSize: 12, fontWeight: 600 }}>
+                {step.label}
+              </div>
+              <div style={{ color: '#374151', fontSize: 11 }}>{step.sub}</div>
+            </div>
+          </div>
+          {i < STEPS.length - 1 && (
+            <div style={{
+              flex: 1, height: 1, margin: '0 12px',
+              background: i < current ? 'linear-gradient(90deg,#10b981,rgba(16,185,129,0.3))' : 'rgba(255,255,255,0.06)',
+              marginBottom: 30, transition: 'background 0.4s',
+            }} />
+          )}
+        </div>
+      );
+    })}
+  </div>
+);
+
+/* ── Step content panels ───────────────────────── */
+const PersonalStep = ({ form }) => (
+  <FormGrid>
+    <Full>
+      <Form.Item name="full_name" label={<Label required>Full Name</Label>} rules={[{ required: true, message: 'Full name is required' }]}>
+        <Input size="large" placeholder="e.g. Dilshan Perera" style={iStyle} />
+      </Form.Item>
+    </Full>
+    <Form.Item
+      name="nic"
+      label={<Label required>NIC Number</Label>}
+      rules={[
+        { required: true, message: 'NIC is required' },
+        { pattern: /^([0-9]{9}[vVxX]|[0-9]{12})$/, message: 'Invalid NIC format' },
+      ]}
+    >
+      <Input size="large" placeholder="199012345678 or 940234567V" style={iStyle}
+        onChange={e => form.setFieldsValue({ nic: e.target.value.toUpperCase() })} />
+    </Form.Item>
+    <Form.Item name="dob" label={<Label required>Date of Birth</Label>} rules={[{ required: true, message: 'DOB is required' }]}>
+      <DatePicker size="large" style={{ ...iStyle, width: '100%' }} />
+    </Form.Item>
+    <Form.Item name="tin" label={<Label>Tax ID (TIN)</Label>}>
+      <Input size="large" placeholder="Optional" style={iStyle} />
+    </Form.Item>
+  </FormGrid>
+);
+
+const EmploymentStep = () => (
+  <FormGrid>
+    <Form.Item name="designation" label={<Label required>Designation</Label>} rules={[{ required: true, message: 'Designation is required' }]}>
+      <Input size="large" placeholder="e.g. Software Engineer" style={iStyle} />
+    </Form.Item>
+    <Form.Item name="department" label={<Label required>Department</Label>} rules={[{ required: true, message: 'Department is required' }]}>
+      <Select size="large" placeholder="Select Department" style={{ ...iStyle }} popupClassName="dark-select-dropdown">
+        {DEPARTMENTS.map(d => <Select.Option key={d} value={d}>{d}</Select.Option>)}
+      </Select>
+    </Form.Item>
+    <Form.Item name="branch" label={<Label required>Branch</Label>} rules={[{ required: true, message: 'Branch is required' }]}>
+      <Input size="large" placeholder="e.g. Colombo Main" style={iStyle} />
+    </Form.Item>
+    <Form.Item name="start_date" label={<Label required>Start Date</Label>} rules={[{ required: true, message: 'Start date is required' }]}>
+      <DatePicker size="large" style={{ ...iStyle, width: '100%' }} />
+    </Form.Item>
+    <Form.Item name="contract_type" label={<Label required>Contract Type</Label>} rules={[{ required: true, message: 'Contract type is required' }]}>
+      <Select size="large" placeholder="Select Type" popupClassName="dark-select-dropdown">
+        {CONTRACT_TYPES.map(c => <Select.Option key={c} value={c}>{c}</Select.Option>)}
+      </Select>
+    </Form.Item>
+  </FormGrid>
+);
+
+const SalaryStep = () => (
+  <FormGrid>
+    <Form.Item name="bank_name" label={<Label required>Bank Name</Label>} rules={[{ required: true, message: 'Bank name is required' }]}>
+      <Input size="large" placeholder="e.g. Commercial Bank" style={iStyle} />
+    </Form.Item>
+    <Form.Item name="bank_branch" label={<Label required>Bank Branch</Label>} rules={[{ required: true, message: 'Bank branch is required' }]}>
+      <Input size="large" placeholder="e.g. Colombo 03" style={iStyle} />
+    </Form.Item>
+    <Full>
+      <Form.Item name="account_number" label={<Label required>Account Number</Label>} rules={[{ required: true, message: 'Account number is required' }]}>
+        <Input size="large" placeholder="e.g. 1002345678" style={{ ...iStyle, fontFamily: 'monospace' }} />
+      </Form.Item>
+    </Full>
+    <Form.Item name="basic_salary" label={<Label required>Basic Salary (LKR)</Label>} rules={[{ required: true, message: 'Basic salary is required' }]}>
+      <Input size="large" prefix={<span style={{ color: '#4b5563', fontSize: 13 }}>Rs.</span>} type="number" placeholder="0.00" style={iStyle} />
+    </Form.Item>
+    <Form.Item name="hourly_ot_rate" label={<Label required>Hourly OT Rate (LKR)</Label>} rules={[{ required: true, message: 'OT rate is required' }]}>
+      <Input size="large" prefix={<span style={{ color: '#4b5563', fontSize: 13 }}>Rs.</span>} type="number" placeholder="0.00" style={iStyle} />
+    </Form.Item>
+  </FormGrid>
+);
+
+/* ── Main ───────────────────────────────────────── */
+const EmployeeRegistrationForm = () => {
   const navigate = useNavigate();
-  const [form, setForm] = useState(initialForm);
-  const [errors, setErrors] = useState({});
-  const [pageError, setPageError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [form] = Form.useForm();
+  const [current, setCurrent] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState(false);
 
-  const isSubmitDisabled = useMemo(() => isSubmitting, [isSubmitting]);
-
-  const updateField = (field) => (event) => {
-    const value = event.target.value;
-    setForm((previous) => ({ ...previous, [field]: value }));
-    setErrors((previous) => ({ ...previous, [field]: '' }));
-    setPageError('');
+  const next = async () => {
+    try { await form.validateFields(); setCurrent(c => c + 1); } catch {}
   };
 
-  const validate = () => {
-    const nextErrors = {};
-
-    requiredFields.forEach((field) => {
-      if (!String(form[field] ?? '').trim()) {
-        nextErrors[field] = 'This field is required.';
-      }
-    });
-
-    if (form.nic.trim() && !/^\d{10,12}$/.test(form.nic.trim())) {
-      nextErrors.nic = 'NIC must be 10 to 12 digits.';
-    }
-
-    if (form.basic_salary && Number(form.basic_salary) <= 0) {
-      nextErrors.basic_salary = 'Basic salary must be a positive value.';
-    }
-
-    if (form.hourly_ot_rate && Number(form.hourly_ot_rate) <= 0) {
-      nextErrors.hourly_ot_rate = 'Hourly OT rate must be a positive value.';
-    }
-
-    return nextErrors;
-  };
-
-  const mapBackendValidationErrors = (errorPayload) => {
-    const nextErrors = {};
-    const rawErrors = errorPayload?.errors;
-
-    if (Array.isArray(rawErrors)) {
-      rawErrors.forEach((message) => {
-        if (typeof message !== 'string') return;
-        if (/nic/i.test(message)) nextErrors.nic = message;
-        if (/salary/i.test(message)) nextErrors.basic_salary = message;
-        if (/ot/i.test(message)) nextErrors.hourly_ot_rate = message;
-      });
-    }
-
-    return nextErrors;
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    const nextErrors = validate();
-    setErrors(nextErrors);
-
-    if (Object.keys(nextErrors).length > 0) {
-      return;
-    }
-
-    setIsSubmitting(true);
-    setPageError('');
-
+  const handleSubmit = async (values) => {
+    setSaving(true);
     try {
-      await api.post('/api/employees', {
-        ...form,
-        full_name: form.full_name.trim(),
-        nic: form.nic.trim(),
-        tin: form.tin.trim(),
-        designation: form.designation.trim(),
-        department: form.department.trim(),
-        branch: form.branch.trim(),
-        bank_name: form.bank_name.trim(),
-        bank_branch: form.bank_branch.trim(),
-        account_number: form.account_number.trim(),
-        basic_salary: Number(form.basic_salary),
-        hourly_ot_rate: Number(form.hourly_ot_rate),
-      });
-
-      navigate('/employees', {
-        replace: true,
-        state: { successMessage: 'Employee registered successfully.' },
-      });
-    } catch (error) {
-      const responseData = error?.response?.data ?? {};
-      const errorCode = responseData?.code;
-
-      if (error?.response?.status === 409 || errorCode === 'DUPLICATE_NIC') {
-        setErrors((previous) => ({
-          ...previous,
-          nic: 'An employee with this NIC already exists.',
-        }));
-      } else if (error?.response?.status === 400 || errorCode === 'VALIDATION_ERROR') {
-        const backendErrors = mapBackendValidationErrors(responseData);
-        if (Object.keys(backendErrors).length > 0) {
-          setErrors((previous) => ({ ...previous, ...backendErrors }));
-        } else {
-          setPageError(
-            extractApiErrorMessage(error, 'Please review the entered employee details.'),
-          );
-        }
-      } else {
-        setPageError(extractApiErrorMessage(error, 'Failed to register employee.'));
+      const payload = {
+        ...values,
+        dob: values.dob.format('YYYY-MM-DD'),
+        start_date: values.start_date.format('YYYY-MM-DD'),
+        basic_salary: Number(values.basic_salary),
+        hourly_ot_rate: Number(values.hourly_ot_rate),
+      };
+      const res = await api.post('/api/employees', payload);
+      if (res.data?.success) {
+        setDone(true);
+        setTimeout(() => navigate('/employees'), 2000);
       }
-    } finally {
-      setIsSubmitting(false);
-    }
+    } catch (err) {
+      if (err?.response?.status === 409 && err?.response?.data?.code === 'DUPLICATE_NIC') {
+        form.setFields([{ name: 'nic', errors: ['An employee with this NIC already exists'] }]);
+        setCurrent(0);
+      }
+    } finally { setSaving(false); }
   };
 
-  const renderField = ({
-    label,
-    field,
-    type = 'text',
-    placeholder = '',
-    required = false,
-    step,
-  }) => (
-    <div>
-      <label className="mb-1.5 block text-sm font-medium text-slate-300" htmlFor={field}>
-        {label}
-        {required ? <span className="ml-1 text-red-400">*</span> : null}
-      </label>
-      <input
-        className={`w-full rounded-xl border bg-slate-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 ${
-          errors[field] ? 'border-red-500/80' : 'border-slate-700'
-        }`}
-        id={field}
-        onChange={updateField(field)}
-        placeholder={placeholder}
-        step={step}
-        type={type}
-        value={form[field]}
-      />
-      {errors[field] ? <p className="mt-1.5 text-xs text-red-400">{errors[field]}</p> : null}
-    </div>
-  );
+  const stepContent = [
+    <PersonalStep form={form} />,
+    <EmploymentStep />,
+    <SalaryStep />,
+  ];
 
-  const renderSection = (title, children) => (
-    <section className={sectionClassName}>
-      <div className="mb-5">
-        <h2 className="text-lg font-semibold text-white">{title}</h2>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">{children}</div>
-    </section>
+  /* Success screen */
+  if (done) return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 480, fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>
+      <motion.div initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
+        style={{ textAlign: 'center' }}>
+        <div style={{
+          width: 80, height: 80, borderRadius: '50%', margin: '0 auto 20px',
+          background: 'rgba(16,185,129,0.12)', border: '2px solid rgba(16,185,129,0.4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 0 40px rgba(16,185,129,0.2)',
+        }}>
+          <CheckCircle size={36} style={{ color: '#10b981' }} />
+        </div>
+        <h2 style={{ color: '#f9fafb', fontSize: 22, fontWeight: 700, margin: '0 0 8px' }}>Employee Registered</h2>
+        <p style={{ color: '#4b5563', fontSize: 14 }}>Redirecting to directory…</p>
+      </motion.div>
+    </div>
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 px-4 py-8 text-white">
-      <div className="mx-auto max-w-4xl space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Register Employee</h1>
-            <p className="mt-2 text-sm text-slate-400">
-              Create a new employee profile with banking and salary details.
-            </p>
-          </div>
+    <div style={{ maxWidth: 740, margin: '0 auto', fontFamily: "'DM Sans','Segoe UI',sans-serif", padding: '0 0 40px' }}>
 
-          <button
-            className="rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
-            onClick={() => navigate('/employees')}
-            type="button"
-          >
-            Back to directory
+      {/* Page header */}
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+          <button onClick={() => navigate('/employees')} style={{
+            background: 'none', border: 'none', color: '#4b5563', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, fontFamily: 'inherit', padding: 0,
+          }}>
+            <ArrowLeft size={14} /> Directory
           </button>
+          <span style={{ color: '#1f2937' }}>/</span>
+          <span style={{ color: '#9ca3af', fontSize: 13 }}>Register Employee</span>
         </div>
+        <h1 style={{ color: '#f9fafb', fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>Register New Employee</h1>
+        <p style={{ color: '#4b5563', fontSize: 13, margin: '4px 0 0' }}>Complete all three steps to add the employee to the system</p>
+        <div style={{ height: 1, background: 'linear-gradient(90deg, rgba(16,185,129,0.2), transparent)', marginTop: 16 }} />
+      </motion.div>
 
-        <form className="space-y-6" onSubmit={handleSubmit}>
-          {renderSection(
-            'Personal Details',
-            <>
-              {renderField({
-                label: 'Full name',
-                field: 'full_name',
-                placeholder: 'Kasun Perera',
-                required: true,
-              })}
-              {renderField({
-                label: 'NIC',
-                field: 'nic',
-                placeholder: '200012345678',
-                required: true,
-              })}
-              {renderField({
-                label: 'Date of birth',
-                field: 'dob',
-                type: 'date',
-                required: true,
-              })}
-              {renderField({
-                label: 'TIN',
-                field: 'tin',
-                placeholder: 'Optional tax identification number',
-              })}
-            </>,
-          )}
+      {/* Card */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08, duration: 0.4 }}
+        style={{
+          background: 'rgba(8,20,13,0.85)', border: '1px solid rgba(16,185,129,0.12)',
+          borderRadius: 18, padding: '32px 36px',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.3)',
+        }}
+      >
+        <StepBar current={current} />
 
-          {renderSection(
-            'Employment Details',
-            <>
-              {renderField({
-                label: 'Designation',
-                field: 'designation',
-                placeholder: 'Software Engineer',
-                required: true,
-              })}
-              {renderField({
-                label: 'Department',
-                field: 'department',
-                placeholder: 'Engineering',
-                required: true,
-              })}
-              {renderField({
-                label: 'Branch',
-                field: 'branch',
-                placeholder: 'Colombo HQ',
-                required: true,
-              })}
-              {renderField({
-                label: 'Start date',
-                field: 'start_date',
-                type: 'date',
-                required: true,
-              })}
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-300" htmlFor="contract_type">
-                  Contract Type<span className="ml-1 text-red-400">*</span>
-                </label>
-                <select
-                  className={`w-full rounded-xl border bg-slate-950 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 ${
-                    errors.contract_type ? 'border-red-500/80' : 'border-slate-700'
-                  }`}
-                  id="contract_type"
-                  onChange={updateField('contract_type')}
-                  value={form.contract_type}
-                >
-                  <option value="Permanent">Permanent</option>
-                  <option value="Contract">Contract</option>
-                  <option value="Probation">Probation</option>
-                </select>
-                {errors.contract_type ? (
-                  <p className="mt-1.5 text-xs text-red-400">{errors.contract_type}</p>
-                ) : null}
-              </div>
-            </>,
-          )}
-
-          {renderSection(
-            'Bank Details',
-            <>
-              {renderField({
-                label: 'Bank name',
-                field: 'bank_name',
-                placeholder: 'Bank of Ceylon',
-                required: true,
-              })}
-              {renderField({
-                label: 'Bank branch',
-                field: 'bank_branch',
-                placeholder: 'Colombo 01',
-                required: true,
-              })}
-              {renderField({
-                label: 'Account number',
-                field: 'account_number',
-                placeholder: '0012345678',
-                required: true,
-              })}
-            </>,
-          )}
-
-          {renderSection(
-            'Initial Salary',
-            <>
-              {renderField({
-                label: 'Basic salary',
-                field: 'basic_salary',
-                type: 'number',
-                placeholder: '75000',
-                required: true,
-                step: '0.01',
-              })}
-              {renderField({
-                label: 'Hourly OT rate',
-                field: 'hourly_ot_rate',
-                type: 'number',
-                placeholder: '468.75',
-                required: true,
-                step: '0.01',
-              })}
-            </>,
-          )}
-
-          {pageError ? (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-              {pageError}
-            </div>
-          ) : null}
-
-          <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-            <button
-              className="rounded-xl border border-slate-700 px-5 py-3 text-sm font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
-              onClick={() => navigate('/employees')}
-              type="button"
-            >
-              Cancel
-            </button>
-            <button
-              className="rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isSubmitDisabled}
-              type="submit"
-            >
-              {isSubmitting ? 'Registering...' : 'Register Employee'}
-            </button>
+        <Form form={form} layout="vertical" onFinish={handleSubmit} requiredMark={false}>
+          <div style={{ minHeight: 280 }}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={current}
+                initial={{ opacity: 0, x: 16 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -16 }}
+                transition={{ duration: 0.22 }}
+              >
+                {stepContent[current]}
+              </motion.div>
+            </AnimatePresence>
           </div>
-        </form>
-      </div>
+
+          {/* Footer nav */}
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            marginTop: 32, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.05)',
+          }}>
+            {current > 0 ? (
+              <button type="button" onClick={() => setCurrent(c => c - 1)} style={{
+                background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 9, padding: '10px 18px', color: '#9ca3af', cursor: 'pointer',
+                fontSize: 13, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit',
+              }}>
+                <ChevronLeft size={15} /> Previous
+              </button>
+            ) : <div />}
+
+            {current < STEPS.length - 1 ? (
+              <motion.button whileTap={{ scale: 0.97 }} type="button" onClick={next} style={{
+                background: 'linear-gradient(135deg,#059669,#10b981)', border: 'none',
+                borderRadius: 9, padding: '10px 22px', color: '#fff',
+                fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit',
+                boxShadow: '0 4px 14px rgba(16,185,129,0.3)',
+              }}>
+                Next Step <ChevronRight size={15} />
+              </motion.button>
+            ) : (
+              <motion.button whileTap={{ scale: 0.97 }} type="submit" disabled={saving} style={{
+                background: saving ? 'rgba(16,185,129,0.5)' : 'linear-gradient(135deg,#059669,#10b981)',
+                border: 'none', borderRadius: 9, padding: '10px 24px',
+                color: '#fff', fontSize: 13, fontWeight: 600,
+                cursor: saving ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'inherit',
+                boxShadow: saving ? 'none' : '0 4px 16px rgba(16,185,129,0.35)',
+              }}>
+                {saving ? (
+                  <><span style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} /> Registering…</>
+                ) : (
+                  <><CheckCircle size={15} /> Complete Registration</>
+                )}
+              </motion.button>
+            )}
+          </div>
+        </Form>
+      </motion.div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .ant-input, .ant-input-number-input { background: transparent !important; color: #f9fafb !important; }
+        .ant-input::placeholder { color: #374151 !important; }
+        .ant-input-affix-wrapper { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.08) !important; border-radius: 9px !important; }
+        .ant-select-selector { background: rgba(255,255,255,0.03) !important; border: 1px solid rgba(255,255,255,0.08) !important; border-radius: 9px !important; color: #9ca3af !important; }
+        .ant-select-selection-placeholder { color: #374151 !important; }
+        .ant-select-arrow { color: #4b5563 !important; }
+        .ant-picker { background: rgba(255,255,255,0.03) !important; border-color: rgba(255,255,255,0.08) !important; border-radius: 9px !important; }
+        .ant-picker-input > input { color: #f9fafb !important; }
+        .ant-picker-input > input::placeholder { color: #374151 !important; }
+        .ant-form-item-label > label { color: #9ca3af !important; }
+        .ant-form-item-explain-error { color: #f87171 !important; font-size: 12px !important; }
+        .ant-form-item { margin-bottom: 18px !important; }
+        .dark-select-dropdown { background: rgba(8,20,13,0.98) !important; border: 1px solid rgba(16,185,129,0.15) !important; border-radius: 10px !important; }
+        .dark-select-dropdown .ant-select-item { color: #9ca3af !important; }
+        .dark-select-dropdown .ant-select-item-option-active { background: rgba(16,185,129,0.08) !important; }
+        .dark-select-dropdown .ant-select-item-option-selected { background: rgba(16,185,129,0.15) !important; color: #10b981 !important; }
+      `}</style>
     </div>
   );
-}
+};
+
+export default EmployeeRegistrationForm;

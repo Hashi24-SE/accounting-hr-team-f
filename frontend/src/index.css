@@ -1,1 +1,42 @@
 @import "tailwindcss";
+
+/* UI Improvement #4: Custom scrollbars matching dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a; /* tailwind slate-900 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #10b981; /* tailwind emerald-500 */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #059669; /* tailwind emerald-600 */
+}
+
+/* UI Improvement #28: Fade-in-up animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+/* Base resets */
+body {
+  background-color: #0f172a; /* slate-900 */
+  color: #f8fafc; /* slate-50 */
+}

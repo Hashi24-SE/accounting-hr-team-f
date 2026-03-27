@@ -1,15 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
-import { login, isAuthenticated } from '../../services/authService';
-import { Form, Input, Button, Typography } from 'antd';
-import {
-  UserOutlined,
-  LockOutlined,
-  EyeInvisibleOutlined,
-  EyeTwoTone,
-  ArrowRightOutlined,
-} from '@ant-design/icons';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { Form, Input, Button, Typography, message, Result } from 'antd';
+import { LockOutlined, ArrowLeftOutlined, CheckCircleOutlined, EyeTwoTone, EyeInvisibleOutlined } from '@ant-design/icons';
+import { motion } from 'framer-motion';
+import api from '../../services/api';
 
 const { Text } = Typography;
 
@@ -50,17 +44,35 @@ const GridOverlay = () => (
 );
 
 /* ─── Main Component ────────────────────────────────────────────────────────── */
-const LoginPage = () => {
+const VerifyOTPPage = () => {
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(null);
   const [tick, setTick] = useState(0);
+  const [cooldown, setCooldown] = useState(0);
+  const [success, setSuccess] = useState(false);
+  
   const navigate = useNavigate();
+  const location = useLocation();
+  const email = location.state?.email;
 
   // Live clock for the status bar
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, []);
+
+  // Cooldown timer
+  useEffect(() => {
+    let timer;
+    if (cooldown > 0) {
+      timer = setInterval(() => setCooldown((c) => c - 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
+  if (!email && !success) {
+    return <Navigate to="/forgot-password" replace />;
+  }
 
   const now = new Date();
   const timeStr = now.toLocaleTimeString('en-US', {
@@ -69,17 +81,30 @@ const LoginPage = () => {
     hour12: true,
   });
 
-  if (isAuthenticated()) return <Navigate to="/employees" replace />;
-
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
-      await login(values.email, values.password);
-      navigate('/employees');
-    } catch {
-      /* global error handler */
+      await api.post('/api/auth/verify-otp', {
+        email,
+        otp: values.otp,
+        new_password: values.new_password,
+      });
+      setSuccess(true);
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Invalid OTP or expired. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (cooldown > 0) return;
+    try {
+      await api.post('/api/auth/resend-otp', { email });
+      message.success('New OTP sent!');
+      setCooldown(60);
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Failed to resend OTP.');
     }
   };
 
@@ -91,6 +116,23 @@ const LoginPage = () => {
     transition: 'all 0.25s ease',
     boxShadow: focused === field ? '0 0 0 3px rgba(16,185,129,0.08)' : 'none',
   });
+
+  if (success) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#050f0a' }}>
+        <Result
+          status="success"
+          title={<span style={{ color: '#f9fafb' }}>Email Verified Successfully!</span>}
+          subTitle={<span style={{ color: '#9ca3af' }}>Your password has been set. You can now log in.</span>}
+          extra={[
+            <Button type="primary" key="console" onClick={() => navigate('/login')} size="large" style={{ background: '#10b981', borderColor: '#10b981' }}>
+              Go to Login
+            </Button>
+          ]}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
@@ -116,7 +158,7 @@ const LoginPage = () => {
         initial={{ opacity: 0, y: 28, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        style={{ width: '100%', maxWidth: 420, padding: '0 16px', zIndex: 10 }}
+        style={{ width: '100%', maxWidth: 440, padding: '0 16px', zIndex: 10 }}
       >
         <div
           style={{
@@ -163,7 +205,6 @@ const LoginPage = () => {
 
           {/* ── Body ── */}
           <div style={{ padding: '36px 36px 32px' }}>
-            {/* Logo mark */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -172,111 +213,100 @@ const LoginPage = () => {
             >
               <div
                 style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 14,
-                  background: 'linear-gradient(135deg, #059669, #10b981)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: '0 auto 16px',
-                  boxShadow: '0 8px 24px rgba(16,185,129,0.3)',
-                  fontSize: 22,
-                }}
-              >
-                🌿
-              </div>
-              <div
-                style={{
                   color: '#f9fafb',
-                  fontSize: 20,
+                  fontSize: 24,
                   fontWeight: 700,
                   letterSpacing: '-0.02em',
                   lineHeight: 1.2,
+                  marginBottom: 8,
                 }}
               >
-                Green Solutions Tech
+                Verify Your Account
               </div>
               <div
                 style={{
-                  color: '#6b7280',
-                  fontSize: 13,
-                  marginTop: 4,
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                  fontWeight: 500,
+                  color: '#9ca3af',
+                  fontSize: 14,
+                  lineHeight: 1.5,
                 }}
               >
-                HR Payroll System
+                OTP sent to: {email}
               </div>
             </motion.div>
 
             {/* Form */}
             <Form
-              name="login"
+              name="verify-otp"
               onFinish={handleSubmit}
               layout="vertical"
               requiredMark={false}
               style={{ gap: 0 }}
             >
-              {/* Email */}
+              {/* OTP Code */}
               <motion.div
                 initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.22 }}
               >
                 <Form.Item
-                  name="email"
+                  name="otp"
                   label={
                     <span style={{ color: '#9ca3af', fontSize: 12, fontWeight: 500, letterSpacing: '0.04em' }}>
-                      EMAIL ADDRESS
+                      6-DIGIT OTP CODE
                     </span>
                   }
                   rules={[
-                    { required: true, message: 'Email is required' },
-                    { type: 'email', message: 'Enter a valid email' },
+                    { required: true, message: 'OTP is required' },
+                    { len: 6, message: 'OTP must be exactly 6 digits' }
                   ]}
-                  style={{ marginBottom: 16 }}
+                  style={{ marginBottom: 20 }}
                 >
                   <Input
-                    prefix={<UserOutlined style={{ color: focused === 'email' ? '#10b981' : '#4b5563' }} />}
-                    placeholder="admin@greensolutions.tech"
+                    placeholder="000000"
+                    maxLength={6}
                     disabled={loading}
                     autoFocus
                     size="large"
-                    onFocus={() => setFocused('email')}
+                    onFocus={() => setFocused('otp')}
                     onBlur={() => setFocused(null)}
                     style={{
-                      ...inputWrap('email'),
-                      color: '#f9fafb',
-                      fontSize: 14,
+                      ...inputWrap('otp'),
+                      color: '#10b981',
+                      fontSize: 28,
+                      letterSpacing: '0.5em',
+                      textAlign: 'center',
+                      fontWeight: 600,
+                      padding: '12px 0'
                     }}
                   />
                 </Form.Item>
               </motion.div>
 
-              {/* Password */}
+              {/* New Password */}
               <motion.div
                 initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.28 }}
+                transition={{ delay: 0.26 }}
               >
                 <Form.Item
-                  name="password"
+                  name="new_password"
                   label={
                     <span style={{ color: '#9ca3af', fontSize: 12, fontWeight: 500, letterSpacing: '0.04em' }}>
-                      PASSWORD
+                      NEW PASSWORD
                     </span>
                   }
-                  rules={[{ required: true, message: 'Password is required' }]}
-                  style={{ marginBottom: 8 }}
+                  rules={[
+                    { required: true, message: 'Password is required' },
+                    { min: 8, message: 'Password must be at least 8 characters long' }
+                  ]}
+                  style={{ marginBottom: 20 }}
                 >
                   <Input.Password
-                    prefix={<LockOutlined style={{ color: focused === 'password' ? '#10b981' : '#4b5563' }} />}
+                    prefix={<LockOutlined style={{ color: focused === 'new_password' ? '#10b981' : '#4b5563' }} />}
                     placeholder="••••••••"
                     disabled={loading}
                     size="large"
-                    onFocus={() => setFocused('password')}
+                    onFocus={() => setFocused('new_password')}
                     onBlur={() => setFocused(null)}
                     iconRender={(visible) =>
                       visible ? (
@@ -286,7 +316,7 @@ const LoginPage = () => {
                       )
                     }
                     style={{
-                      ...inputWrap('password'),
+                      ...inputWrap('new_password'),
                       color: '#f9fafb',
                       fontSize: 14,
                     }}
@@ -294,48 +324,70 @@ const LoginPage = () => {
                 </Form.Item>
               </motion.div>
 
-              {/* Forgot password */}
+              {/* Confirm Password */}
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.32 }}
-                style={{ textAlign: 'right', marginBottom: 24 }}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.30 }}
               >
-                <button
-                  type="button"
-                  onClick={() => navigate('/forgot-password')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#10b981',
-                    fontSize: 13,
-                    cursor: 'pointer',
-                    padding: 0,
-                    fontFamily: 'inherit',
-                    opacity: 0.85,
-                    transition: 'opacity 0.2s',
-                  }}
-                  onMouseEnter={(e) => (e.target.style.opacity = 1)}
-                  onMouseLeave={(e) => (e.target.style.opacity = 0.85)}
+                <Form.Item
+                  name="confirm_password"
+                  label={
+                    <span style={{ color: '#9ca3af', fontSize: 12, fontWeight: 500, letterSpacing: '0.04em' }}>
+                      CONFIRM PASSWORD
+                    </span>
+                  }
+                  dependencies={['new_password']}
+                  rules={[
+                    { required: true, message: 'Please confirm your password' },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (!value || getFieldValue('new_password') === value) {
+                          return Promise.resolve();
+                        }
+                        return Promise.reject(new Error('Passwords do not match'));
+                      },
+                    }),
+                  ]}
+                  style={{ marginBottom: 28 }}
                 >
-                  Forgot password?
-                </button>
+                  <Input.Password
+                    prefix={<LockOutlined style={{ color: focused === 'confirm_password' ? '#10b981' : '#4b5563' }} />}
+                    placeholder="••••••••"
+                    disabled={loading}
+                    size="large"
+                    onFocus={() => setFocused('confirm_password')}
+                    onBlur={() => setFocused(null)}
+                    iconRender={(visible) =>
+                      visible ? (
+                        <EyeTwoTone twoToneColor="#10b981" />
+                      ) : (
+                        <EyeInvisibleOutlined style={{ color: '#4b5563' }} />
+                      )
+                    }
+                    style={{
+                      ...inputWrap('confirm_password'),
+                      color: '#f9fafb',
+                      fontSize: 14,
+                    }}
+                  />
+                </Form.Item>
               </motion.div>
 
               {/* Submit */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.36 }}
+                transition={{ delay: 0.34 }}
               >
-                <Form.Item style={{ marginBottom: 0 }}>
+                <Form.Item style={{ marginBottom: 20 }}>
                   <Button
                     type="primary"
                     htmlType="submit"
                     block
                     loading={loading}
                     size="large"
-                    icon={!loading && <ArrowRightOutlined />}
+                    icon={!loading && <CheckCircleOutlined />}
                     style={{
                       background: loading
                         ? 'rgba(16,185,129,0.6)'
@@ -350,14 +402,74 @@ const LoginPage = () => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      flexDirection: 'row-reverse',
                       gap: 8,
                       transition: 'all 0.25s ease',
                     }}
                   >
-                    {loading ? 'Signing in…' : 'Sign in'}
+                    {loading ? 'Verifying…' : 'Verify & Set Password'}
                   </Button>
                 </Form.Item>
+              </motion.div>
+              
+              {/* Resend OTP */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.38 }}
+                style={{ textAlign: 'center', marginBottom: 16 }}
+              >
+                {cooldown > 0 ? (
+                  <Text style={{ color: '#9ca3af', fontSize: 13 }}>
+                    Resend in 00:{cooldown < 10 ? `0${cooldown}` : cooldown}
+                  </Text>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResendOTP}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#10b981',
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      padding: 0,
+                      fontFamily: 'inherit',
+                      transition: 'opacity 0.2s',
+                    }}
+                  >
+                    Didn't receive it? Resend OTP
+                  </button>
+                )}
+              </motion.div>
+
+              {/* Back Link */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.42 }}
+                style={{ textAlign: 'center' }}
+              >
+                <button
+                  type="button"
+                  onClick={() => navigate(-1)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#9ca3af',
+                    fontSize: 14,
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontFamily: 'inherit',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    transition: 'color 0.2s',
+                  }}
+                  onMouseEnter={(e) => (e.target.style.color = '#10b981')}
+                  onMouseLeave={(e) => (e.target.style.color = '#9ca3af')}
+                >
+                  <ArrowLeftOutlined style={{ fontSize: 12 }} /> Back
+                </button>
               </motion.div>
             </Form>
           </div>
@@ -375,18 +487,6 @@ const LoginPage = () => {
             </Text>
           </div>
         </div>
-
-        {/* Sub-card hint */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          style={{ textAlign: 'center', marginTop: 20 }}
-        >
-          <Text style={{ color: '#374151', fontSize: 12 }}>
-            Admin-managed accounts only · Contact HR for access
-          </Text>
-        </motion.div>
       </motion.div>
 
       {/* pulse keyframe */}
@@ -407,4 +507,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default VerifyOTPPage;

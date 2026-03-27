@@ -1,74 +1,55 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import LoginPage from '../pages/auth/LoginPage';
-import EmployeeDirectory from '../pages/employees/EmployeeDirectory';
-import EmployeeProfile from '../pages/employees/EmployeeProfile';
-import EmployeeRegistrationForm from '../pages/employees/EmployeeRegistrationForm';
-import OrganizationSettings from '../pages/settings/OrganizationSettings';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { isAuthenticated } from '../services/authService';
+import AppLayout from '../components/layout/AppLayout';
 
-function ProtectedRoute({ children }) {
-  return isAuthenticated() ? children : <Navigate to="/login" replace />;
-}
+// Pages
+import LoginPage from '../pages/auth/LoginPage';
+import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
+import VerifyOTPPage from '../pages/auth/VerifyOTPPage';
+import ResetPasswordPage from '../pages/auth/ResetPasswordPage';
+import OrganizationSettings from '../pages/settings/OrganizationSettings';
+import EmployeeDirectory from '../pages/employees/EmployeeDirectory';
+import EmployeeRegistrationForm from '../pages/employees/EmployeeRegistrationForm';
+import EmployeeProfile from '../pages/employees/EmployeeProfile';
 
-function PublicOnlyRoute({ children }) {
-  return isAuthenticated() ? <Navigate to="/employees" replace /> : children;
-}
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const location = useLocation();
 
-export default function AppRoutes() {
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+};
+
+const AppRoutes = () => {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path="/login"
-          element={
-            <PublicOnlyRoute>
-              <LoginPage />
-            </PublicOnlyRoute>
-          }
-        />
+    <Routes>
+      {/* Public Route */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/verify-otp" element={<VerifyOTPPage />} />
 
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <OrganizationSettings />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/employees"
-          element={
-            <ProtectedRoute>
-              <EmployeeDirectory />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/employees/new"
-          element={
-            <ProtectedRoute>
-              <EmployeeRegistrationForm />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/employees/:id"
-          element={
-            <ProtectedRoute>
-              <EmployeeProfile />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/"
-          element={<Navigate to={isAuthenticated() ? '/employees' : '/login'} replace />}
-        />
-        <Route
-          path="*"
-          element={<Navigate to={isAuthenticated() ? '/employees' : '/login'} replace />}
-        />
-      </Routes>
-    </BrowserRouter>
+      {/* Protected Routes inside AppLayout */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Navigate to="/employees" replace />} />
+        <Route path="employees" element={<EmployeeDirectory />} />
+        <Route path="employees/new" element={<EmployeeRegistrationForm />} />
+        <Route path="employees/:id" element={<EmployeeProfile />} />
+        <Route path="settings" element={<OrganizationSettings />} />
+        <Route path="reset-password" element={<ResetPasswordPage />} />
+        <Route path="*" element={<Navigate to="/employees" replace />} />
+      </Route>
+    </Routes>
   );
-}
+};
+
+export default AppRoutes;
