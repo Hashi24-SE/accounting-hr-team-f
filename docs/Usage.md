@@ -91,3 +91,10 @@ You can use the default administrator credentials created by the backend to log 
 ## API Documentation
 
 When the backend server is running, you can view the complete API specification and Swagger UI by visiting the base endpoint or consulting the `docs/api-spec.md` file.
+
+## Architecture & System Flows
+
+For deeper technical details on specific system flows, please consult the following architecture documents:
+
+- [Authentication Flow (`docs/authentication-flow.md`)](./authentication-flow.md): Detailed explanation of JWT tokens, refresh rotation, and password reset procedures.
+- [Notification System (`docs/notification-system.md`)](./notification-system.md): Explanation of the Server-Sent Events (SSE) implementation for real-time alerts.
