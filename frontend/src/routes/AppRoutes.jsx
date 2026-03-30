@@ -12,6 +12,9 @@ import OrganizationSettings from '../pages/settings/OrganizationSettings';
 import EmployeeDirectory from '../pages/employees/EmployeeDirectory';
 import EmployeeRegistrationForm from '../pages/employees/EmployeeRegistrationForm';
 import EmployeeProfile from '../pages/employees/EmployeeProfile';
+import AllowanceSettings from '../pages/settings/AllowanceSettings';
+import LeaveDashboard from '../pages/leaves/LeaveDashboard';
+import AttendanceEntry from '../pages/attendance/AttendanceEntry';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -48,6 +51,12 @@ const AppRoutes = () => {
         <Route path="employees/new" element={<EmployeeRegistrationForm />} />
         <Route path="employees/:id" element={<EmployeeProfile />} />
         <Route path="settings" element={<OrganizationSettings />} />
+        
+        {/* Developer 2 Routes */}
+        <Route path="settings/allowances" element={<AllowanceSettings />} />
+        <Route path="leaves" element={<LeaveDashboard />} />
+        <Route path="attendance" element={<AttendanceEntry />} />
+        
         <Route path="*" element={<Navigate to="/employees" replace />} />
       </Route>
     </Routes>

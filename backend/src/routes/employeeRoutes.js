@@ -4,6 +4,9 @@ const employeeController = require('../controllers/employeeController');
 const authMiddleware = require('../middlewares/authMiddleware');
 const requireRole = require('../middlewares/roleMiddleware');
 const { validateBody } = require('../middlewares/validate');
+const allowanceController = require('../controllers/allowanceController');
+const leaveController = require('../controllers/leaveController');
+const earningsController = require('../controllers/earningsController');
 
 /**
  * @swagger
@@ -272,5 +275,15 @@ router.put('/:id', authMiddleware, requireRole('Admin', 'HR'), employeeControlle
  *         description: Employee deactivated
  */
 router.patch('/:id/status', authMiddleware, requireRole('Admin'), employeeController.deactivateEmployee);
+
+// Employee Allowances Routes (Developer 2)
+router.post('/:id/allowances', allowanceController.assignAllowanceToEmployee);
+router.get('/:id/allowances', allowanceController.getEmployeeAllowances);
+
+// Employee Leave Balances Route (Developer 2)
+router.post('/:id/leaves/balances', leaveController.allocateLeaveBalances);
+
+// Employee Gross Salary Route (Developer 2 Core Engine)
+router.get('/:id/gross-salary', earningsController.getGrossSalary);
 
 module.exports = router;

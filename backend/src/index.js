@@ -11,6 +11,11 @@ const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./config/swagger');
 
+// Developer 2 Routes
+const allowanceRoutes = require('./routes/allowanceRoutes');
+const leaveRoutes = require('./routes/leaveRoutes');
+const attendanceRoutes = require('./routes/attendanceRoutes'); // <-- අලුතින් එකතු කරන ලද Attendance Route එක
+
 // Additional swagger config for Bearer token auth globally
 swaggerSpecs.components = {
   securitySchemes: {
@@ -59,6 +64,9 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 // 5. Mount routers
 app.use('/api/auth', authRoutes);
 app.use('/api/organization', organizationRoutes);
+app.use('/api/allowances', allowanceRoutes);
+app.use('/api/leaves', leaveRoutes);
+app.use('/api/attendance', attendanceRoutes); // <-- අලුතින් එකතු කරන ලද Attendance Route එක
 
 // We mount salary routes onto employees to follow the structure /api/employees/:id/salary
 app.use('/api/employees', employeeRoutes);

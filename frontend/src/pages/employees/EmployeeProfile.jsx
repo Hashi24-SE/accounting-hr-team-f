@@ -13,6 +13,9 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+// අලුතින් එකතු කළ EmployeeAllowanceManager Component එක
+import EmployeeAllowanceManager from '../../components/employees/EmployeeAllowanceManager';
+
 /* ── Status config ──────────────────────────────── */
 const STATUS_CFG = {
   Active:    { color: '#10b981', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)', glow: '#10b981' },
@@ -330,6 +333,15 @@ const EmployeeProfile = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* ── Employee Allowance Manager (Developer 2) ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.35 }}
+        style={{ marginTop: 24 }}
+      >
+        <EmployeeAllowanceManager employeeId={id} />
+      </motion.div>
 
       {/* ── Salary revision modal ── */}
       <Modal
