@@ -1,33 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { Input, Select, Tag, Spin } from 'antd';
+import { Input, Select, Tag, Spin, Skeleton } from 'antd';
 import { SearchOutlined, UserAddOutlined } from '@ant-design/icons';
 import { Users, UserPlus, ChevronRight, Building2, GitBranch } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-/* ── Status config ─────────────────────────────── */
-const STATUS_CFG = {
-  Active:    { color: '#10b981', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.25)' },
-  Inactive:  { color: '#f87171', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.2)' },
-  'On Leave':{ color: '#fbbf24', bg: 'rgba(251,191,36,0.1)',  border: 'rgba(251,191,36,0.2)'  },
-  Suspended: { color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', border: 'rgba(148,163,184,0.2)' },
-};
-
-const StatusBadge = ({ status }) => {
-  const cfg = STATUS_CFG[status] || STATUS_CFG.Suspended;
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 5,
-      background: cfg.bg, border: `1px solid ${cfg.border}`,
-      color: cfg.color, borderRadius: 20,
-      padding: '3px 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.05em',
-    }}>
-      <span style={{ width: 5, height: 5, borderRadius: '50%', background: cfg.color, boxShadow: `0 0 5px ${cfg.color}` }} />
-      {(status || 'Active').toUpperCase()}
-    </span>
-  );
-};
+import PageHeader from '../../components/layout/PageHeader';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 /* ── Avatar initial ────────────────────────────── */
 const EmpAvatar = ({ name, size = 36 }) => {
@@ -55,7 +34,7 @@ const FilterSelect = ({ placeholder, options, onChange }) => (
     allowClear
     onChange={onChange}
     style={{ minWidth: 160 }}
-    popupClassName="dark-select-dropdown"
+        classNames={{ popup: { root: 'dark-select-dropdown' } }}
     styles={{
       popup: { background: 'rgba(8,20,13,0.98)', border: '1px solid rgba(16,185,129,0.15)', borderRadius: 10 },
     }}
@@ -71,10 +50,20 @@ const EmployeeDirectory = () => {
   const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [department, setDepartment] = useState(null);
-  const [status, setStatus] = useState(null);
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [search, setSearch] = useState(() => localStorage.getItem('emp_dir_search') || '');
+  const [department, setDepartment] = useState(() => localStorage.getItem('emp_dir_dept') || null);
+  const [status, setStatus] = useState(() => localStorage.getItem('emp_dir_status') || null);
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+
+  useEffect(() => { localStorage.setItem('emp_dir_search', search); }, [search]);
+  useEffect(() => {
+    if (department) localStorage.setItem('emp_dir_dept', department);
+    else localStorage.removeItem('emp_dir_dept');
+  }, [department]);
+  useEffect(() => {
+    if (status) localStorage.setItem('emp_dir_status', status);
+    else localStorage.removeItem('emp_dir_status');
+  }, [status]);
   const [hoveredRow, setHoveredRow] = useState(null);
 
   useEffect(() => {
@@ -107,18 +96,11 @@ const EmployeeDirectory = () => {
     <div style={{ fontFamily: "'DM Sans','Segoe UI',sans-serif", maxWidth: 1200, margin: '0 auto' }}>
 
       {/* ── Page header ── */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}
-        style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h1 style={{ color: '#f9fafb', fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Users size={22} style={{ color: '#10b981' }} />
-              Employee Directory
-            </h1>
-            <p style={{ color: '#4b5563', fontSize: 13, margin: '4px 0 0' }}>
-              View and manage all employee records
-            </p>
-          </div>
+      <PageHeader
+        title="Employee Directory"
+        subtitle="View and manage all employee records"
+        icon={Users}
+        actions={
           <motion.button
             whileTap={{ scale: 0.97 }}
             onClick={() => navigate('/employees/new')}
@@ -134,9 +116,8 @@ const EmployeeDirectory = () => {
           >
             <UserPlus size={15} /> Register Employee
           </motion.button>
-        </div>
-        <div style={{ height: 1, background: 'linear-gradient(90deg, rgba(16,185,129,0.2), transparent)', marginTop: 16 }} />
-      </motion.div>
+        }
+      />
 
       {/* ── Stat chips ── */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
@@ -203,10 +184,12 @@ const EmployeeDirectory = () => {
 
         {/* Table header */}
         <div style={{
+          position: 'sticky', top: 0, zIndex: 10,
           display: 'grid', gridTemplateColumns: '2fr 1.2fr 1.2fr 1fr 1fr 0.6fr',
           padding: '12px 20px',
           borderBottom: '1px solid rgba(255,255,255,0.05)',
           background: 'rgba(16,185,129,0.03)',
+          backdropFilter: 'blur(8px)',
         }}>
           {['Employee', 'NIC', 'Department', 'Branch', 'Status', ''].map((h, i) => (
             <span key={i} style={{ color: '#4b5563', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{h}</span>
@@ -215,15 +198,30 @@ const EmployeeDirectory = () => {
 
         {/* Rows */}
         {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 240, flexDirection: 'column', gap: 14 }}>
-            <Spin size="large" />
-            <span style={{ color: '#4b5563', fontSize: 13 }}>Loading employees…</span>
+          <div style={{ padding: '20px' }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} active paragraph={{ rows: 1 }} style={{ marginBottom: 20 }} />
+            ))}
           </div>
         ) : employees.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: '#374151' }}>
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: '#374151', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <Users size={40} style={{ marginBottom: 12, opacity: 0.3 }} />
             <div style={{ fontSize: 15, fontWeight: 500 }}>No employees found</div>
-            <div style={{ fontSize: 13, marginTop: 4 }}>Try adjusting your filters</div>
+            <div style={{ fontSize: 13, marginTop: 4, marginBottom: 16 }}>Try adjusting your filters</div>
+            {(search || department || status) && (
+              <button
+                onClick={() => { setSearch(''); setDepartment(null); setStatus(null); }}
+                style={{
+                  background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)',
+                  color: '#10b981', padding: '8px 16px', borderRadius: 8, fontSize: 13,
+                  cursor: 'pointer', fontWeight: 600, transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(16,185,129,0.15)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(16,185,129,0.1)'}
+              >
+                Clear Search & Filters
+              </button>
+            )}
           </div>
         ) : (
           <AnimatePresence>

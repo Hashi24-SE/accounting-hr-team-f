@@ -233,6 +233,22 @@ CREATE TABLE password_reset_tokens (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 20. notifications
+CREATE TABLE notifications (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type          TEXT NOT NULL,
+  recipient_id  UUID REFERENCES users(id) ON DELETE CASCADE,
+  actor_id      UUID REFERENCES users(id),
+  title         TEXT NOT NULL,
+  body          TEXT NOT NULL,
+  payload       JSONB DEFAULT '{}',
+  read          BOOLEAN DEFAULT false,
+  created_at    TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_notifications_recipient ON notifications(recipient_id, created_at DESC);
+CREATE INDEX idx_notifications_unread    ON notifications(recipient_id, read) WHERE read = false;
+
 -- ── SEED DATA ────────────────────────────────────────────────
 
 -- system_configurations

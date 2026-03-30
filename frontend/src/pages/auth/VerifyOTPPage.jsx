@@ -1,47 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
-import { Form, Input, Button, Typography, message, Result } from 'antd';
+import { Form, Input, Button, Typography, notification, Result } from 'antd';
 import { LockOutlined, ArrowLeftOutlined, CheckCircleOutlined, EyeTwoTone, EyeInvisibleOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
+import AuthShell from '../../components/layout/AuthShell';
 
 const { Text } = Typography;
-
-/* ─── Floating Orb ─────────────────────────────────────────────────────────── */
-const Orb = ({ style }) => (
-  <div
-    style={{
-      position: 'absolute',
-      borderRadius: '50%',
-      filter: 'blur(80px)',
-      opacity: 0.18,
-      pointerEvents: 'none',
-      ...style,
-    }}
-  />
-);
-
-/* ─── Animated grid lines ───────────────────────────────────────────────────── */
-const GridOverlay = () => (
-  <svg
-    style={{
-      position: 'absolute',
-      inset: 0,
-      width: '100%',
-      height: '100%',
-      opacity: 0.04,
-      pointerEvents: 'none',
-    }}
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <defs>
-      <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
-        <path d="M 48 0 L 0 0 0 48" fill="none" stroke="#10b981" strokeWidth="0.8" />
-      </pattern>
-    </defs>
-    <rect width="100%" height="100%" fill="url(#grid)" />
-  </svg>
-);
 
 /* ─── Main Component ────────────────────────────────────────────────────────── */
 const VerifyOTPPage = () => {
@@ -91,7 +56,11 @@ const VerifyOTPPage = () => {
       });
       setSuccess(true);
     } catch (error) {
-      message.error(error.response?.data?.message || 'Invalid OTP or expired. Please try again.');
+      notification.error({
+        title: 'Error',
+        description: error.response?.data?.message || 'Invalid OTP or expired. Please try again.',
+        placement: 'topRight',
+      });
     } finally {
       setLoading(false);
     }
@@ -101,10 +70,18 @@ const VerifyOTPPage = () => {
     if (cooldown > 0) return;
     try {
       await api.post('/api/auth/resend-otp', { email });
-      message.success('New OTP sent!');
+      notification.success({
+        title: 'Success',
+        description: 'New OTP sent!',
+        placement: 'topRight',
+      });
       setCooldown(60);
     } catch (error) {
-      message.error(error.response?.data?.message || 'Failed to resend OTP.');
+      notification.error({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to resend OTP.',
+        placement: 'topRight',
+      });
     }
   };
 
@@ -119,7 +96,7 @@ const VerifyOTPPage = () => {
 
   if (success) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#050f0a' }}>
+      <AuthShell>
         <Result
           status="success"
           title={<span style={{ color: '#f9fafb' }}>Email Verified Successfully!</span>}
@@ -130,29 +107,12 @@ const VerifyOTPPage = () => {
             </Button>
           ]}
         />
-      </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#050f0a',
-        position: 'relative',
-        overflow: 'hidden',
-        fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-      }}
-    >
-      {/* ── Background atmosphere ── */}
-      <GridOverlay />
-      <Orb style={{ width: 520, height: 520, background: '#064e3b', top: -120, left: -160 }} />
-      <Orb style={{ width: 400, height: 400, background: '#10b981', bottom: -80, right: -100 }} />
-      <Orb style={{ width: 300, height: 300, background: '#059669', top: '40%', left: '60%' }} />
-
+    <AuthShell>
       {/* ── Card ── */}
       <motion.div
         initial={{ opacity: 0, y: 28, scale: 0.97 }}
@@ -490,20 +450,7 @@ const VerifyOTPPage = () => {
       </motion.div>
 
       {/* pulse keyframe */}
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-        .ant-input, .ant-input-affix-wrapper {
-          background: transparent !important;
-          color: #f9fafb !important;
-        }
-        .ant-input::placeholder { color: #4b5563 !important; }
-        .ant-input-affix-wrapper:hover { border-color: rgba(16,185,129,0.4) !important; }
-        .ant-form-item-explain-error { color: #f87171 !important; font-size: 12px; }
-      `}</style>
-    </div>
+    </AuthShell>
   );
 };
 

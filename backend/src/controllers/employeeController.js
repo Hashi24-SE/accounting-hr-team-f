@@ -1,5 +1,6 @@
 const employeeService = require('../services/employeeService');
 const { success } = require('../utils/response');
+const eventBus = require('../events/eventBus');
 
 /**
  * Register a new employee
@@ -8,6 +9,13 @@ const registerEmployee = async (req, res, next) => {
   try {
     const { basic_salary, hourly_ot_rate, ...employeeData } = req.body;
     const newEmployee = await employeeService.registerEmployee(employeeData, basic_salary, hourly_ot_rate);
+
+    eventBus.emit('employee.created', {
+      employee: newEmployee,
+      actorId: req.user.id,
+      actorName: req.user.email // the auth system payload only has `email` usually in req.user
+    });
+
     return success(res, newEmployee, 'Employee registered successfully', 201);
   } catch (err) {
     next(err);
@@ -59,7 +67,14 @@ const updateEmployee = async (req, res, next) => {
 const deactivateEmployee = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await employeeService.deactivateEmployee(id);
+    const employee = await employeeService.deactivateEmployee(id);
+    
+    eventBus.emit('account.deactivated', {
+      employee,
+      actorId: req.user.id,
+      actorName: req.user.email
+    });
+
     return success(res, { id }, 'Employee deactivated', 200);
   } catch (err) {
     next(err);

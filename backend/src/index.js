@@ -22,11 +22,15 @@ swaggerSpecs.components = {
   },
 };
 
+// Initialize Listeners
+require('./notifications/listeners');
+
 // Routers
 const authRoutes = require('./routes/authRoutes');
 const organizationRoutes = require('./routes/organizationRoutes');
 const employeeRoutes = require('./routes/employeeRoutes');
 const salaryRoutes = require('./routes/salaryRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 // Missing existing routes mock setup
 const earningsRoutes = require('./routes/earningsRoutes');
@@ -41,7 +45,12 @@ const { error } = require('./utils/response');
 const app = express();
 
 // 3. Mount middleware: cors, express.json()
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 
 // 4. Mount Swagger UI at /api-docs
@@ -60,6 +69,9 @@ app.use('/api/earnings', earningsRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/statutory', statutoryRoutes);
 app.use('/api/tax', taxRoutes);
+
+// Mount notifications routes
+app.use('/api/notifications', notificationRoutes);
 
 // 6. Mount 404 handler for unmatched routes
 app.use((req, res, next) => {
