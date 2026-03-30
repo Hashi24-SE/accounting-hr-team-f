@@ -12,6 +12,9 @@ import {
   LayoutDashboard,
   Bell,
   Search,
+  Calendar,
+  ClipboardList,
+  Wallet
 } from 'lucide-react';
 import { logout } from '../../services/authService';
 import NotificationBell from '../notifications/NotificationBell';
@@ -23,9 +26,12 @@ const SIDEBAR_W = 240;
 const SIDEBAR_W_COLLAPSED = 68;
 
 const NAV_ITEMS = [
-  { key: '/employees',     icon: Users,          label: 'Directory',          group: 'main' },
-  { key: '/employees/new', icon: UserPlus,        label: 'Register Employee',  group: 'main' },
-  { key: '/settings',      icon: Settings,        label: 'Settings',           group: 'system' },
+  { key: '/employees',           icon: Users,          label: 'Directory',          group: 'main' },
+  { key: '/employees/new',       icon: UserPlus,       label: 'Register Employee',  group: 'main' },
+  { key: '/leaves',              icon: Calendar,       label: 'Leave Management',   group: 'main' },
+  { key: '/attendance',          icon: ClipboardList,  label: 'Attendance',         group: 'main' },
+  { key: '/settings/allowances', icon: Wallet,         label: 'Allowances Config',  group: 'system' },
+  { key: '/settings',            icon: Settings,       label: 'General Settings',   group: 'system' },
 ];
 
 /* ─────────────────────────────────────────────
@@ -34,6 +40,9 @@ const NAV_ITEMS = [
 const resolveKey = (pathname) => {
   if (pathname.startsWith('/employees/new')) return '/employees/new';
   if (pathname.startsWith('/employees'))     return '/employees';
+  if (pathname.startsWith('/leaves'))        return '/leaves';
+  if (pathname.startsWith('/attendance'))    return '/attendance';
+  if (pathname.startsWith('/settings/allowances')) return '/settings/allowances';
   if (pathname.startsWith('/settings'))      return '/settings';
   return '';
 };
@@ -424,10 +433,13 @@ const AppLayout = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span style={{ color: '#e5e7eb', fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em' }}>
-                {activeKey === '/employees'     && 'Employee Directory'}
-                {activeKey === '/employees/new' && 'Register Employee'}
-                {activeKey === '/settings'      && 'Settings'}
-                {!activeKey                     && 'Dashboard'}
+                {activeKey === '/employees'           && 'Employee Directory'}
+                {activeKey === '/employees/new'       && 'Register Employee'}
+                {activeKey === '/leaves'              && 'Leave Management'}
+                {activeKey === '/attendance'          && 'Monthly Attendance'}
+                {activeKey === '/settings/allowances' && 'Allowance Settings'}
+                {activeKey === '/settings'            && 'General Settings'}
+                {!activeKey                           && 'Dashboard'}
               </span>
               <span style={{ color: '#374151', fontSize: 11, letterSpacing: '0.03em' }}>
                 {time.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}

@@ -25,18 +25,30 @@ const allocateLeaveBalances = async (req, res, next) => {
     }
 };
 
+// Added Controller for getting requests
+const getLeaveRequests = async (req, res, next) => {
+    try {
+        const { status } = req.query;
+        const data = await leaveService.getLeaveRequests(status);
+        res.status(200).json({ success: true, data });
+    } catch (error) {
+        next(error);
+    }
+};
+
 const submitLeaveRequest = async (req, res, next) => {
     try {
-        const { employee_id, leave_type_id, start_date, end_date, reason } = req.body;
+        // FIX: Destructure 'days_taken' from req.body
+        const { employee_id, leave_type_id, start_date, end_date, days_taken, reason } = req.body;
 
-        if (!employee_id || !leave_type_id || !start_date || !end_date) {
+        if (!employee_id || !leave_type_id || !start_date || !end_date || !days_taken) {
             return res.status(400).json({ success: false, message: 'Missing required fields for leave request.' });
         }
 
         const newRequest = await leaveService.submitLeaveRequest({
-            employee_id, leave_type_id, start_date, end_date, reason
+            employee_id, leave_type_id, start_date, end_date, days_taken, reason
         });
-        res.status(201).json({ success: true, data: newRequest });
+        res.status(201).json({ success: true, data: newRequest, message: 'Leave request submitted successfully' });
     } catch (error) {
         next(error);
     }
@@ -52,7 +64,7 @@ const updateLeaveRequestStatus = async (req, res, next) => {
         }
 
         const updatedRequest = await leaveService.updateLeaveRequestStatus(id, status);
-        res.status(200).json({ success: true, data: updatedRequest });
+        res.status(200).json({ success: true, data: updatedRequest, message: `Request successfully ${status}` });
     } catch (error) {
         next(error);
     }
@@ -61,6 +73,7 @@ const updateLeaveRequestStatus = async (req, res, next) => {
 module.exports = {
     getLeaveTypes,
     allocateLeaveBalances,
+    getLeaveRequests,
     submitLeaveRequest,
     updateLeaveRequestStatus
 };

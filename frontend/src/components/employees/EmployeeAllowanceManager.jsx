@@ -22,13 +22,12 @@ const EmployeeAllowanceManager = ({ employeeId }) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch assigned allowances for this employee
-      const assignedRes = await api.get(`/employees/${employeeId}/allowances`);
+      // FIX 1: Changed URL to use the allowance routes correctly
+      const assignedRes = await api.get(`/api/allowances/employee/${employeeId}`);
       setAssignedAllowances(assignedRes.data.data || []);
 
-      // Fetch all allowance types (to populate the dropdown)
-      const typesRes = await api.get('/allowances');
-      // Filter only active allowances for new assignments
+      // Fetch all available allowances
+      const typesRes = await api.get('/api/allowances');
       const activeTypes = (typesRes.data.data || []).filter(a => a.is_active);
       setAvailableAllowances(activeTypes);
     } catch (error) {
@@ -46,13 +45,13 @@ const EmployeeAllowanceManager = ({ employeeId }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post(`/employees/${employeeId}/allowances`, {
+      // FIX 2: Changed URL to use the allowance routes correctly
+      await api.post(`/api/allowances/employee/${employeeId}`, {
         allowance_type_id: formData.allowance_type_id,
         amount: parseFloat(formData.amount),
         effective_date: formData.effective_date
       });
       
-      // Reset form and refresh list
       setFormData({ allowance_type_id: '', amount: '', effective_date: '' });
       fetchData();
       alert('Allowance assigned successfully!');

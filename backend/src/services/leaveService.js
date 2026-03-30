@@ -19,18 +19,33 @@ const allocateLeaveBalances = async (employeeId, balancesData) => {
     return data;
 };
 
-// 3. Submit a leave request
+// 3. Get leave requests (Added for Developer 2 UI)
+const getLeaveRequests = async (status) => {
+    let query = supabase
+        .from('leave_requests')
+        .select('*, leave_types (name)');
+    
+    if (status) {
+        query = query.eq('status', status);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return data;
+};
+
+// 4. Submit a leave request
 const submitLeaveRequest = async (requestData) => {
     const { data, error } = await supabase
         .from('leave_requests')
-        .insert([requestData])
+        .insert([{ ...requestData, status: 'Pending' }]) // Force status to Pending
         .select();
         
     if (error) throw new Error(error.message);
     return data[0];
 };
 
-// 4. Approve / Reject Leave Request (Core Engine Logic)
+// 5. Approve / Reject Leave Request (Core Engine Logic)
 const updateLeaveRequestStatus = async (requestId, status) => {
     // Fetch request details
     const { data: request, error: reqError } = await supabase
@@ -61,7 +76,9 @@ const updateLeaveRequestStatus = async (requestId, status) => {
                 .eq('year', currentYear)
                 .single();
 
-            if (balError || !balance) throw new Error("Leave balance not found for this year");
+            // Note: If balances are not yet configured for the year, this will throw an error. 
+            // In a real system, you might want to auto-create balance or allow negative balance.
+            if (balError || !balance) throw new Error("Leave balance not found for this year. Please allocate balance first.");
             if (balance.remaining_days < requestedDays) throw new Error("Insufficient leave balance. Cannot approve.");
 
             const { error: updateBalError } = await supabase
@@ -111,6 +128,7 @@ const updateLeaveRequestStatus = async (requestId, status) => {
 module.exports = {
     getLeaveTypes,
     allocateLeaveBalances,
+    getLeaveRequests,
     submitLeaveRequest,
     updateLeaveRequestStatus
 };

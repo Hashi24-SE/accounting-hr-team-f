@@ -7,7 +7,6 @@ const LeaveDashboard = () => {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Leave Request Form State
   const [formData, setFormData] = useState({
     employee_id: '',
     leave_type_id: '',
@@ -23,17 +22,16 @@ const LeaveDashboard = () => {
   const fetchInitialData = async () => {
     setLoading(true);
     try {
-      // Fetch leave types
-      const typesRes = await api.get('/leaves/types');
+      // FIX 1: Add '/api' to the request URL
+      const typesRes = await api.get('/api/leaves/types'); 
       setLeaveTypes(typesRes.data.data || []);
 
-      // Note: In a real app, you need a GET /leaves/requests endpoint to fetch pending requests.
-      // Since we didn't explicitly build it in Phase 4, we will mock it or handle it gracefully if missing.
       try {
-        const reqRes = await api.get('/leaves/requests?status=Pending');
+        // FIX 2: Add '/api' to the request URL
+        const reqRes = await api.get('/api/leaves/requests?status=Pending');
         setPendingRequests(reqRes.data.data || []);
       } catch (err) {
-        console.warn('GET /leaves/requests endpoint might not be fully implemented yet.', err);
+        console.warn('GET /api/leaves/requests endpoint failed.', err);
         setPendingRequests([]); 
       }
     } catch (error) {
@@ -48,24 +46,46 @@ const LeaveDashboard = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const submitLeaveRequest = async (e) => {
+ const submitLeaveRequest = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/leaves/requests', formData);
+      // Calculate 'days_taken' automatically
+      const start = new Date(formData.start_date);
+      const end = new Date(formData.end_date);
+      const days_taken = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+      // Ensure reason is null if empty string to match DB constraints
+      const reason = formData.reason.trim() === '' ? null : formData.reason;
+
+      const payload = {
+          employee_id: formData.employee_id,
+          leave_type_id: formData.leave_type_id,
+          start_date: formData.start_date,
+          end_date: formData.end_date,
+          reason: reason,
+          days_taken: days_taken // This MUST be present
+      };
+
+      await api.post('/api/leaves/requests', payload);
       alert('Leave request submitted successfully!');
       setFormData({ employee_id: '', leave_type_id: '', start_date: '', end_date: '', reason: '' });
-      fetchInitialData(); // Refresh table
+      fetchInitialData(); 
     } catch (error) {
       console.error('Failed to submit request:', error);
+      // Log the exact backend error to the console for easier debugging
+      if (error.response && error.response.data) {
+          console.error("Backend Error Details:", error.response.data);
+      }
       alert('Error submitting leave request. Check inputs.');
     }
   };
 
   const updateRequestStatus = async (id, status) => {
     try {
-      await api.patch(`/leaves/requests/${id}/status`, { status });
+      // FIX 5: Add '/api' to the request URL
+      await api.patch(`/api/leaves/requests/${id}/status`, { status });
       alert(`Request ${status} successfully!`);
-      fetchInitialData(); // Refresh table
+      fetchInitialData(); 
     } catch (error) {
       console.error(`Failed to ${status} request:`, error);
       alert(`Error updating request status.`);
