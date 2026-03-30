@@ -1,11 +1,9 @@
 import axios from 'axios';
 
-let accessToken = null;
-
-export const getAccessToken = () => accessToken;
+export const getAccessToken = () => localStorage.getItem('accessToken');
 
 export const setAccessToken = (token) => {
-  accessToken = token;
+  localStorage.setItem('accessToken', token);
 };
 
 export const getRefreshToken = () => localStorage.getItem('refreshToken');
@@ -15,12 +13,12 @@ export const setRefreshToken = (token) => {
 };
 
 export const clearTokens = () => {
-  accessToken = null;
+  localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
 };
 
 export const isAuthenticated = () => {
-  return !!accessToken || !!getRefreshToken();
+  return !!getAccessToken() || !!getRefreshToken();
 };
 
 export const login = async (email, password) => {
@@ -44,6 +42,7 @@ export const login = async (email, password) => {
 
 export const logout = async () => {
   try {
+    const accessToken = getAccessToken();
     const refreshToken = getRefreshToken();
     if (accessToken && refreshToken) {
       await axios.post(
@@ -60,6 +59,7 @@ export const logout = async () => {
 };
 
 export const fetchCurrentUser = async () => {
+  const accessToken = getAccessToken();
   if (!accessToken) {
     throw new Error('No access token available');
   }

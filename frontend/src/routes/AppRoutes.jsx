@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { isAuthenticated } from '../services/authService';
 import AppLayout from '../components/layout/AppLayout';
 
@@ -25,11 +26,13 @@ const ProtectedRoute = ({ children }) => {
 
 const AppRoutes = () => {
   return (
+    <BrowserRouter>
     <Routes>
       {/* Public Route */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/verify-otp" element={<VerifyOTPPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Protected Routes inside AppLayout */}
       <Route
@@ -45,10 +48,10 @@ const AppRoutes = () => {
         <Route path="employees/new" element={<EmployeeRegistrationForm />} />
         <Route path="employees/:id" element={<EmployeeProfile />} />
         <Route path="settings" element={<OrganizationSettings />} />
-        <Route path="reset-password" element={<ResetPasswordPage />} />
         <Route path="*" element={<Navigate to="/employees" replace />} />
       </Route>
     </Routes>
+    </BrowserRouter>
   );
 };
 

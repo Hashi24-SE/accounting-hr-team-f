@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Form, Input, Button, Typography, message } from 'antd';
+import { Form, Input, Button, Typography, notification } from 'antd';
 import { LockOutlined, CheckCircleOutlined, EyeTwoTone, EyeInvisibleOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
 import { logout } from '../../services/authService';
+import AuthShell from '../../components/layout/AuthShell';
 
 const { Title, Text } = Typography;
 
@@ -21,11 +22,19 @@ const ResetPasswordPage = () => {
         current_password: values.current_password,
         new_password: values.new_password,
       });
-      message.success('Password updated successfully!');
+      notification.success({
+        title: 'Success',
+        description: 'Password updated successfully!',
+        placement: 'topRight',
+      });
       await logout();
       navigate('/login');
     } catch (error) {
-      message.error(error.response?.data?.message || 'Current password is incorrect or failed to update.');
+      notification.error({
+        title: 'Error',
+        description: error.response?.data?.message || 'Current password is incorrect or failed to update.',
+        placement: 'topRight',
+      });
     } finally {
       setLoading(false);
     }
@@ -41,16 +50,7 @@ const ResetPasswordPage = () => {
   });
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '40px 16px',
-        width: '100%',
-        fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-      }}
-    >
+    <AuthShell>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -277,16 +277,7 @@ const ResetPasswordPage = () => {
         </div>
       </motion.div>
 
-      <style>{`
-        .ant-input, .ant-input-affix-wrapper {
-          background: transparent !important;
-          color: #f9fafb !important;
-        }
-        .ant-input::placeholder { color: #4b5563 !important; }
-        .ant-input-affix-wrapper:hover { border-color: rgba(16,185,129,0.4) !important; }
-        .ant-form-item-explain-error { color: #f87171 !important; font-size: 12px; }
-      `}</style>
-    </div>
+    </AuthShell>
   );
 };
 

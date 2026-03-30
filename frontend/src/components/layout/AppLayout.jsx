@@ -14,6 +14,7 @@ import {
   Search,
 } from 'lucide-react';
 import { logout } from '../../services/authService';
+import NotificationBell from '../notifications/NotificationBell';
 
 /* ─────────────────────────────────────────────
    Constants
@@ -456,30 +457,7 @@ const AppLayout = () => {
             </Tooltip>
 
             {/* Notifications */}
-            <Tooltip title="Notifications" placement="bottom">
-              <button
-                style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.07)',
-                  borderRadius: 9,
-                  width: 36, height: 36,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', color: '#6b7280',
-                  position: 'relative',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#9ca3af'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#6b7280'; }}
-              >
-                <Bell size={15} />
-                <div style={{
-                  position: 'absolute', top: 7, right: 7,
-                  width: 7, height: 7, borderRadius: '50%',
-                  background: '#10b981',
-                  boxShadow: '0 0 6px rgba(16,185,129,0.8)',
-                }} />
-              </button>
-            </Tooltip>
+            <NotificationBell />
 
             {/* Divider */}
             <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.07)', margin: '0 4px' }} />

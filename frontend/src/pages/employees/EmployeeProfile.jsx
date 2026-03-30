@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { Spin, Modal, Form, Input, DatePicker, message } from 'antd';
@@ -83,7 +83,9 @@ const EmployeeProfile = () => {
   const [isSalaryModal, setIsSalaryModal] = useState(false);
   const [isDeactivateModal, setIsDeactivateModal] = useState(false);
   const [salaryForm] = Form.useForm();
-  const [saving, setSaving] = useState(false);
+  const [salarySaving, setSalarySaving] = useState(false);
+  const [deactivateSaving, setDeactivateSaving] = useState(false);
+  const submitSource = useRef(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -101,7 +103,12 @@ const EmployeeProfile = () => {
   const copy = (text, label) => { navigator.clipboard.writeText(text); message.success(`${label} copied`); };
 
   const handleSalarySubmit = async (values) => {
-    setSaving(true);
+    if (submitSource.current !== 'button') {
+      submitSource.current = null;
+      return;
+    }
+    submitSource.current = null;
+    setSalarySaving(true);
     try {
       const res = await api.post(`/api/employees/${id}/salary`, {
         employee_id: id,
@@ -110,15 +117,15 @@ const EmployeeProfile = () => {
         effective_date: values.effective_date.format('YYYY-MM-DD'),
       });
       if (res.data?.success) { setIsSalaryModal(false); salaryForm.resetFields(); fetchData(); }
-    } finally { setSaving(false); }
+    } finally { setSalarySaving(false); }
   };
 
   const handleDeactivate = async () => {
-    setSaving(true);
+    setDeactivateSaving(true);
     try {
       const res = await api.patch(`/api/employees/${id}/status`, { status: 'Inactive' });
       if (res.data?.success) { setIsDeactivateModal(false); fetchData(); }
-    } finally { setSaving(false); }
+    } finally { setDeactivateSaving(false); }
   };
 
   if (loading) return (
@@ -328,11 +335,19 @@ const EmployeeProfile = () => {
       <Modal
         title={<span style={{ color: '#f9fafb' }}>Revise Salary</span>}
         open={isSalaryModal}
+        destroyOnClose
+        keyboard={false}
+        maskClosable={false}
         onCancel={() => setIsSalaryModal(false)}
         footer={null}
         styles={{ content: { background: 'rgba(8,20,13,0.98)', border: '1px solid rgba(16,185,129,0.15)' }, header: { background: 'transparent', borderBottom: '1px solid rgba(255,255,255,0.06)' }, mask: { backdropFilter: 'blur(4px)' } }}
       >
-        <Form form={salaryForm} layout="vertical" onFinish={handleSalarySubmit} style={{ marginTop: 16 }}>
+        <Form
+          form={salaryForm}
+          layout="vertical"
+          onFinish={handleSalarySubmit}
+          style={{ marginTop: 16 }}
+        >
           {[
             { name: 'basic_salary',   label: 'New Basic Salary (LKR)' },
             { name: 'hourly_ot_rate', label: 'New Hourly OT Rate (LKR)' },
@@ -343,31 +358,35 @@ const EmployeeProfile = () => {
             </Form.Item>
           ))}
           <Form.Item name="effective_date" label={<span style={{ color: '#9ca3af', fontSize: 12 }}>Effective Date</span>} rules={[{ required: true }]}>
-            <DatePicker size="large" style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 9 }} />
+            <DatePicker
+              size="large"
+              style={{ width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 9 }}
+            />
           </Form.Item>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
-            <button onClick={() => setIsSalaryModal(false)} type="button" style={{
-              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 9, padding: '9px 18px', color: '#9ca3af', cursor: 'pointer', fontFamily: 'inherit',
-            }}>Cancel</button>
-            <button type="submit" disabled={saving} style={{
-              background: 'linear-gradient(135deg,#059669,#10b981)', border: 'none',
-              borderRadius: 9, padding: '9px 18px', color: '#fff', cursor: saving ? 'not-allowed' : 'pointer',
-              fontWeight: 600, fontFamily: 'inherit', opacity: saving ? 0.7 : 1,
-            }}>
-              {saving ? 'Saving…' : 'Save Revision'}
-            </button>
-          </div>
         </Form>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
+          <button onClick={() => setIsSalaryModal(false)} type="button" style={{
+            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 9, padding: '9px 18px', color: '#9ca3af', cursor: 'pointer', fontFamily: 'inherit',
+          }}>Cancel</button>
+          <button type="submit" onClick={() => { submitSource.current = 'button'; salaryForm.submit(); }} disabled={salarySaving} style={{
+            background: 'linear-gradient(135deg,#059669,#10b981)', border: 'none',
+            borderRadius: 9, padding: '9px 18px', color: '#fff', cursor: salarySaving ? 'not-allowed' : 'pointer',
+            fontWeight: 600, fontFamily: 'inherit', opacity: salarySaving ? 0.7 : 1,
+          }}>
+            {salarySaving ? 'Saving…' : 'Save Revision'}
+          </button>
+        </div>
       </Modal>
 
       {/* ── Deactivate modal ── */}
       <Modal
         title={<span style={{ color: '#f87171', display: 'flex', alignItems: 'center', gap: 8 }}><AlertTriangle size={16} /> Confirm Deactivation</span>}
         open={isDeactivateModal}
+        destroyOnClose
         onCancel={() => setIsDeactivateModal(false)}
         onOk={handleDeactivate}
-        confirmLoading={saving}
+        confirmLoading={deactivateSaving}
         okText="Deactivate"
         okButtonProps={{ danger: true, style: { borderRadius: 8 } }}
         cancelButtonProps={{ style: { borderRadius: 8 } }}
